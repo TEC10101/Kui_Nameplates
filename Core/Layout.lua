@@ -233,10 +233,20 @@ local function OnFrameShow(self)
 	local trivial = f:IsTrivial()
 
 	---------------------------------------------- Trivial sizing/positioning --
+  -- Decouple our frame size from the Blizzard frame.
+  -- Always use our configured nameplate dimensions.
 	if addon.uiscale then
-		-- change our parent frame size if we're using fixaa..
-		-- (size is changed by SetAllPoints otherwise)
-		f:SetSize(self:GetWidth() / addon.uiscale, self:GetHeight() / addon.uiscale)
+    if trivial then
+			f:SetSize(addon.sizes.frame.twidth / addon.uiscale, addon.sizes.frame.theight / addon.uiscale)
+		else
+			f:SetSize(addon.sizes.frame.width / addon.uiscale, addon.sizes.frame.height / addon.uiscale)
+		end
+  else
+		if trivial then
+			f:SetSize(addon.sizes.frame.twidth, addon.sizes.frame.theight)
+		else
+			f:SetSize(addon.sizes.frame.width, addon.sizes.frame.height)
+		end
 	end
 
 	if (trivial and not f.trivial) or (not trivial and f.trivial) or not f.doneFirstShow then
@@ -584,6 +594,8 @@ function addon:InitFrame(frame)
 	-- make default healthbar & castbar transparent
 	castBar:SetStatusBarTexture(kui.m.t.empty)
 	healthBar:SetStatusBarTexture(kui.m.t.empty)
+  -- Helps so that there's not a flash of a default nameplate before our custom frame shows
+  healthBar:Hide();
 
 	f.glow = glowRegion
 	f.boss = bossIconRegion
@@ -611,19 +623,27 @@ function addon:InitFrame(frame)
 	f.OnHealthValueChanged = OnHealthValueChanged
 	f.IsTrivial = IsTrivial
 
-	------------------------------------------------------------------ Layout --
-	if profile.general.fixaa and addon.uiscale then
-		f:SetSize(frame:GetWidth() / addon.uiscale, frame:GetHeight() / addon.uiscale)
-		f:Hide()
-
-		local sizer = CreateFrame("Frame", nil, f)
-		sizer:SetPoint("BOTTOMLEFT", WorldFrame)
-		sizer:SetPoint("TOPRIGHT", frame, "CENTER")
-		sizer:SetScript("OnSizeChanged", SizerOnSizeChanged)
-		sizer.f = f
+  -------------------------------- custom hitbox
+  -- Shrink the Blizzard frame to match visual healthbar size
+	-- This reduces the clickable area, but it can't happen in combat, so we have to live with that fact.
+	local targetWidth = addon.sizes.frame.width
+	local targetHeight = addon.sizes.frame.height
+  if InCombatLockdown() then
+		-- Do nothing.  Cannot set the blizzard frame size in combat
 	else
-		f:SetAllPoints(frame)
+    frame:SetSize(targetWidth, targetHeight)
 	end
+
+	------------------------------------------------------------------ Layout --
+	-- Always position our frame using the Blizzard frame's CENTER,
+	-- but keep our own independent size.
+	f:Hide()
+
+	local sizer = CreateFrame("Frame", nil, f)
+	sizer:SetPoint("BOTTOMLEFT", WorldFrame)
+	sizer:SetPoint("TOPRIGHT", frame, "CENTER")
+	sizer:SetScript("OnSizeChanged", SizerOnSizeChanged)
+	sizer.f = f
 
 	f:SetScale(addon.uiscale)
 
