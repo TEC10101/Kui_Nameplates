@@ -14,6 +14,7 @@ local _
 local len = string.len
 local utf8sub = LibStub("Kui-1.0").utf8sub
 local orig_SetName
+local max = math.max
 
 local colour_friendly
 
@@ -23,6 +24,55 @@ local PositionRaidIcon = {
 	function(f) return f.icon:SetPoint("LEFT", f.name, "RIGHT", 0, 2) end,
 	function(f) return f.icon:SetPoint("TOP", f.name, "BOTTOM", -1, -8) end
 }
+
+-- Blizzard clickbox sizing ---------------------------------------------------
+local HITBOX_PADDING_X = 12
+local HITBOX_PADDING_Y = 10
+
+local function StoreDefaultHitbox(f)
+	if not f or f._nameonly_defaultHitboxStored then
+		return
+	end
+
+	-- "Default" for our purposes is the configured (small) healthbar clickbox,
+	-- not whatever size Blizzard last applied.
+	if addon and addon.sizes and addon.sizes.frame then
+		if f.trivial then
+			f._nameonly_defaultHitboxW = addon.sizes.frame.twidth
+			f._nameonly_defaultHitboxH = addon.sizes.frame.theight
+		else
+			f._nameonly_defaultHitboxW = addon.sizes.frame.width
+			f._nameonly_defaultHitboxH = addon.sizes.frame.height
+		end
+	end
+	f._nameonly_defaultHitboxStored = true
+end
+
+local function RestoreDefaultHitbox(f)
+	if not f or not f.kuiParent or InCombatLockdown() then
+		return
+	end
+
+	StoreDefaultHitbox(f)
+	if f._nameonly_defaultHitboxW and f._nameonly_defaultHitboxH then
+		f.kuiParent:SetSize(f._nameonly_defaultHitboxW, f._nameonly_defaultHitboxH)
+	end
+end
+
+local function UpdateNameOnlyHitbox(f)
+	if not f or not f.kuiParent or InCombatLockdown() then
+		return
+	end
+	if not f.name or not f.name.GetStringWidth or not f.name.GetStringHeight then
+		return
+	end
+
+	StoreDefaultHitbox(f)
+
+	local w = max(1, f.name:GetStringWidth() + HITBOX_PADDING_X)
+	local h = max(1, f.name:GetStringHeight() + HITBOX_PADDING_Y)
+	f.kuiParent:SetSize(w, h)
+end
 
 -- mod functions ###############################################################
 local function UpdateDisplay(f)
@@ -38,6 +88,10 @@ local function UpdateDisplay(f)
 
 	local sheight = f.name:GetStringHeight() / 2
 	f.name:SetPoint("CENTER", 0.5, (sheight - floor(sheight) > 0.01) and 0 or 0.5)
+
+	if f.nameonly then
+		UpdateNameOnlyHitbox(f)
+	end
 end
 
 -- toggle nameonly mode on
@@ -46,6 +100,8 @@ local function SwitchOn(f)
 		return
 	end
 	f.nameonly = true
+
+	StoreDefaultHitbox(f)
 
 	if not f.player and f.friend then
 		-- color NPC names
@@ -60,6 +116,7 @@ local function SwitchOn(f)
 	f.name:SetJustifyH("CENTER")
 
 	UpdateDisplay(f)
+	UpdateNameOnlyHitbox(f)
 
 	f.icon:SetParent(f)
 	f.icon:ClearAllPoints()
@@ -80,6 +137,8 @@ local function SwitchOff(f)
 		return
 	end
 	f.nameonly = nil
+
+	RestoreDefaultHitbox(f)
 
 	if not f.player then
 		f.name:SetTextColor(1, 1, 1)
@@ -129,6 +188,8 @@ local function nameonly_SetName(f)
 
 	local health_length = len(f.name.text) * (f.health.curr / f.health.max)
 	f.name:SetText(utf8sub(f.name.text, 0, health_length) .. "|cff666666" .. utf8sub(f.name.text, health_length + 1))
+
+	UpdateNameOnlyHitbox(f)
 end
 local function HookSetName(f)
 	orig_SetName = f.SetName

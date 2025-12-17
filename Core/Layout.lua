@@ -232,6 +232,17 @@ local function OnFrameShow(self)
 	local f = self.kui
 	local trivial = f:IsTrivial()
 
+	-- Keep the Blizzard nameplate clickbox small in the normal (healthbar) case.
+	-- Blizzard can reset this size; we reapply it whenever the frame shows.
+	-- Can't change secure frames in combat.
+	if not InCombatLockdown() and addon and addon.sizes and addon.sizes.frame then
+		if trivial then
+			self:SetSize(addon.sizes.frame.twidth, addon.sizes.frame.theight)
+		else
+			self:SetSize(addon.sizes.frame.width, addon.sizes.frame.height)
+		end
+	end
+
 	---------------------------------------------- Trivial sizing/positioning --
   -- Decouple our frame size from the Blizzard frame.
   -- Always use our configured nameplate dimensions.
@@ -567,6 +578,9 @@ function addon:InitFrame(frame)
 	frame.kui = CreateFrame("Frame", nil, profile.general.compatibility and frame or WorldFrame)
 	local f = frame.kui
 
+	-- expose the Blizzard nameplate frame (clickbox) to modules
+	f.kuiParent = frame
+
 	f.fontObjects = {}
 
 	-- fetch default ui's objects
@@ -594,8 +608,9 @@ function addon:InitFrame(frame)
 	-- make default healthbar & castbar transparent
 	castBar:SetStatusBarTexture(kui.m.t.empty)
 	healthBar:SetStatusBarTexture(kui.m.t.empty)
-  -- Helps so that there's not a flash of a default nameplate before our custom frame shows
-  healthBar:Hide();
+  -- TC Note - trying to see if this is causing nameplates to disappear in some cases
+  -- -- Helps so that there's not a flash of a default nameplate before our custom frame shows
+  -- healthBar:Hide();
 
 	f.glow = glowRegion
 	f.boss = bossIconRegion
