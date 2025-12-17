@@ -168,7 +168,14 @@ do
 	local HealthValues = {
 		function(f) return kui.num(f.health.curr) end,
 		function(f) return kui.num(f.health.max) end,
-		function(f) return floor(f.health.percent) end,
+		function(f)
+			-- display 1 instead of 0 for sub-1% health
+			local p = floor(f.health.percent)
+			if p == 0 and f.health.curr and f.health.curr > 0 then
+				return 1
+			end
+			return p
+		end,
 		function(f) return "-" .. (kui.num(f.health.max - f.health.curr)) end,
 		function(f) return "" end
 	}
