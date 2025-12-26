@@ -256,6 +256,13 @@ local function OnFrameEnter(self)
 	addon:StoreGUID(self, "mouseover")
 	self.highlighted = true
 
+	-- Re-evaluate health colour immediately on mouseover so that
+	-- tapped/hostile status is up to date as soon as the cursor
+	-- moves over the plate.
+	if self.SetHealthColour then
+		self:SetHealthColour()
+	end
+
 	if self.highlight then
 		self.highlight:Show()
 	end
