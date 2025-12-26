@@ -68,6 +68,14 @@ local function SetHealthColour(self, sticky, r, g, b)
 		return
 	end
 
+	-- if another module (e.g. LowHealth, TankMode) has set a
+	-- higher-priority sticky colour, don't overwrite it with the
+	-- default reaction colour until that module explicitly clears
+	-- the priority via SetHealthColour(false).
+	if self.healthColourPriority then
+		return
+	end
+
 	-- if we've already determined this unit is tapped, keep using the
 	-- tapped colour until the frame is reset (prevents flicker when
 	-- GUID/unit matching comes and goes).
