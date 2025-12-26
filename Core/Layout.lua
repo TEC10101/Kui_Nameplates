@@ -14,11 +14,18 @@ local profile
 -- profile keys used often
 local profile_fade, profile_fade_rules, profile_lowhealthval, profile_hp
 
---------------------------------------------------------------------- globals --
 local select, pairs, ipairs, type = select, pairs, ipairs, type
-local unpack, floor = unpack, math.floor
+local unpack, floor, min, max = unpack, math.floor, math.min, math.max
 local strfind, strsplit, tinsert = strfind, strsplit, tinsert
-local UnitExists = UnitExists
+local UnitExists, UnitGUID = UnitExists, UnitGUID
+local UnitIsTapped, UnitIsTappedByPlayer = UnitIsTapped, UnitIsTappedByPlayer
+-- detect grey "tapped" colours more robustly
+local function IsTappedColour(r, g, b)
+	-- treat any fairly dark, low-saturation colour as tapped
+	local maxc = max(r, max(g, b))
+	local minc = min(r, min(g, b))
+	return maxc < 0.7 and (maxc - minc) < 0.05
+end
 -- non-laggy, pixel perfect positioning (Semlar's) #############################
 local function SizerOnSizeChanged(self, x, y)
 	-- because :Hide bubbles up and triggers the OnHide script of any elements
@@ -68,13 +75,47 @@ local function SetHealthColour(self, sticky, r, g, b)
 		return
 	end
 
+	-- if we've already determined this unit is tapped, keep using the
+	-- tapped colour until the frame is reset (prevents flicker when
+	-- GUID/unit matching comes and goes).
+	if self.tapped and not self.health.reset then
+		local tr, tg, tb = unpack(profile_hp.reactioncolours.tappedcol)
+		self.health:SetStatusBarColor(tr, tg, tb)
+		return
+	end
+
 	-- update health colour from default (r,g,b arguments are ignored)
 	r, g, b = self.oldHealth:GetStatusBarColor()
-	if self.health.reset or r ~= self.health.r or g ~= self.health.g or b ~= self.health.b then
-		-- store the default colour
-		self.health.r, self.health.g, self.health.b = r, g, b
-		self.health.reset, self.player, self.tapped = nil, nil, nil
 
+	-- always refresh classification; tapped can still be detected for
+	-- new units after a reset.
+	self.health.r, self.health.g, self.health.b = r, g, b
+	self.health.reset, self.player = nil, nil
+
+	-- try to detect "tapped by someone else" using unit APIs first
+	local tapped
+	if self.guid then
+		local guid = self.guid
+		local function CheckUnit(unit)
+			return UnitExists(unit) and UnitGUID(unit) == guid and UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit)
+		end
+
+		if CheckUnit("target") or CheckUnit("mouseover") or CheckUnit("focus") or
+			CheckUnit("targettarget") or CheckUnit("mouseovertarget") or CheckUnit("focustarget") then
+			tapped = true
+		end
+	end
+
+	-- fall back to colour-based tapped detection when we can't match a unit
+	if not tapped and IsTappedColour(r, g, b) then
+		tapped = true
+	end
+
+	if tapped then
+		-- tapped NPC; keep previous self.friend value
+		self.tapped = true
+		r, g, b = unpack(profile_hp.reactioncolours.tappedcol)
+	else
 		if g > 0.9 and r == 0 and b == 0 then
 			-- friendly NPC
 			self.friend = true
@@ -92,19 +133,14 @@ local function SetHealthColour(self, sticky, r, g, b)
 			-- neutral NPC
 			self.friend = nil
 			r, g, b = unpack(profile_hp.reactioncolours.neutralcol)
-		elseif r < 0.6 and (r + g) == (r + b) then
-			-- tapped NPC
-			-- keep previous self.friend value
-			self.tapped = true
-			r, g, b = unpack(profile_hp.reactioncolours.tappedcol)
 		else
 			-- enemy player, use default UI colour
 			self.friend = nil
 			self.player = true
 		end
-
-		self.health:SetStatusBarColor(r, g, b)
 	end
+
+	self.health:SetStatusBarColor(r, g, b)
 end
 
 local function SetGlowColour(self, r, g, b, a)
@@ -207,6 +243,10 @@ do
 
 		frame.health:SetMinMaxValues(frame.health.min, frame.health.max)
 		frame.health:SetValue(frame.health.curr)
+
+		-- Re-evaluate health colour (including tapped state) on every health
+		-- change, not just when Blizzard's bar colour differs.
+		frame:SetHealthColour()
 
 		SetHealthText(frame)
 	end
@@ -344,6 +384,7 @@ local function OnFrameHide(self)
 	f.target = nil
 	f.targetDelay = nil
 	f.healthColourPriority = nil
+	f.tapped = nil
 
 	-- force un-highlight
 	OnFrameLeave(f)

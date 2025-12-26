@@ -73,10 +73,15 @@ kui.GetUnitColour = function(unit, str)
     -- faction colour for NPCs
     local ret, r, g, b
 
-    if (UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit))
-        or UnitIsDeadOrGhost(unit)
-        or not UnitIsConnected(unit)
-    then
+    -- match ShadowedUF-style tapped logic:
+    --   not UnitIsTappedByPlayer(unit)
+    --   and UnitIsTapped(unit)
+    --   and UnitCanAttack("player", unit)
+    if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
+        -- dead/offline
+        ret = { r = .5, g = .5, b = .5 }
+    elseif not UnitIsTappedByPlayer(unit) and UnitIsTapped(unit) and UnitCanAttack("player", unit) then
+        -- tapped by someone else
         ret = { r = .5, g = .5, b = .5 }
     else
         if UnitIsPlayer(unit) or kui.UnitIsPet(unit) then
