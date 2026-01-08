@@ -12,6 +12,30 @@ local L = LibStub("AceLocale-3.0"):GetLocale("KuiNameplates")
 mod.uiName = L["Cast bars"]
 
 local format = format
+local function DebugShieldState(f, shieldShown)
+	if not (mod.db and mod.db.profile and mod.db.profile.debug) then
+		return
+	end
+	if not f or not f.castbar then
+		return
+	end
+
+	if f.castbar._lastShieldShown == shieldShown then
+		return
+	end
+	f.castbar._lastShieldShown = shieldShown
+
+	local name = (f.name and f.name.text) or (f.oldName and f.oldName:GetText()) or "?"
+	local spell = f.castbar and f.castbar.spellName or "?"
+	DEFAULT_CHAT_FRAME:AddMessage(
+		format(
+			"Kui Castbar debug: %s spell=%s shieldShown=%s",
+			tostring(name),
+			tostring(spell),
+			tostring(shieldShown)
+		)
+	)
+end
 local function ResetFade(f)
 	if not f or not f.castbar then
 		return
@@ -47,7 +71,10 @@ local function OnDefaultCastbarShow(self)
 	end
 
 	-- is cast uninterruptible?
-	if f.shield:IsShown() then
+	local shieldShown = f.shield and f.shield:IsShown() or false
+	DebugShieldState(f, shieldShown)
+
+	if shieldShown then
 		f.castbar.bar:SetStatusBarColor(unpack(mod.db.profile.display.shieldbarcolour))
 		f.castbar.shield:Show()
 	else
@@ -122,7 +149,10 @@ local function OnDefaultCastbarUpdate(self, elapsed)
 	f.castbar.bar:SetMinMaxValues(min, max)
 	f.castbar.bar:SetValue(self:GetValue())
 
-	if f.shield:IsShown() then
+	local shieldShown = f.shield and f.shield:IsShown() or false
+	DebugShieldState(f, shieldShown)
+
+	if shieldShown then
 		f.castbar.bar:SetStatusBarColor(unpack(mod.db.profile.display.shieldbarcolour))
 		f.castbar.shield:Show()
 	else
@@ -314,6 +344,15 @@ function mod:GetOptions()
 			order = 0,
 			disabled = false
 		},
+		debug = {
+			type = "toggle",
+			name = "Debug uninterruptible",
+			desc = "Print uninterruptible detection info to chat when it changes.",
+			order = 1,
+			disabled = function()
+				return not self.db.profile.enabled
+			end
+		},
 		onfriendly = {
 			type = "toggle",
 			name = L["Show friendly cast bars"],
@@ -381,6 +420,7 @@ function mod:OnInitialize()
 		{
 			profile = {
 				enabled = true,
+				debug = true,
 				onfriendly = true,
 				display = {
 					casttime = false,

@@ -620,5 +620,8 @@ function addon:OnEnable()
 	self:RegisterEvent("PARTY_MEMBERS_CHANGED", "QueueGroupUpdate")
 	self:RegisterEvent("RAID_ROSTER_UPDATE", "QueueGroupUpdate")
 
-	self:ScheduleRepeatingTimer("OnUpdate", 0.1)
+	-- Scan for new Blizzard nameplates very frequently so we can
+	-- wrap/hide them before they are visibly rendered for long.
+	-- This reduces the chance of seeing a default plate flash.
+	self:ScheduleRepeatingTimer("OnUpdate", 0.01)
 end
