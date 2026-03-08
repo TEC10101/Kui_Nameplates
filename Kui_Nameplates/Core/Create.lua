@@ -88,7 +88,6 @@ end
 ------------------------------------------------------------------ Health bar --
 function addon:CreateHealthBar(frame, f)
 	f.health = CreateFrame("StatusBar", nil, f)
-  -- TC changed 1 to 0.  Back to 1
 	f.health:SetFrameLevel(1)
 	f.health:SetStatusBarTexture(addon.bartexture)
 	f.health.percent = 100

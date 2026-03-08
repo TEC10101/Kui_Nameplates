@@ -240,6 +240,10 @@ do
 		frame.health:SetMinMaxValues(frame.health.min, frame.health.max)
 		frame.health:SetValue(frame.health.curr)
 
+		-- Refresh health bar colour when value changes (prevents stale colours
+		-- when another player tags/kills the mob and health resets).
+		frame:SetHealthColour()
+
 		SetHealthText(frame)
 	end
 end

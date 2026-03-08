@@ -12,30 +12,6 @@ local L = LibStub("AceLocale-3.0"):GetLocale("KuiNameplates")
 mod.uiName = L["Cast bars"]
 
 local format = format
-local function DebugShieldState(f, uninterruptible)
-	if not (mod.db and mod.db.profile and mod.db.profile.debug) then
-		return
-	end
-	if not f or not f.castbar then
-		return
-	end
-
-	if f.castbar._lastDebugState == uninterruptible then
-		return
-	end
-	f.castbar._lastDebugState = uninterruptible
-
-	local name = (f.name and f.name.text) or (f.oldName and f.oldName:GetText()) or "?"
-	local spell = f.castbar and f.castbar.spellName or "?"
-	DEFAULT_CHAT_FRAME:AddMessage(
-		format(
-			"Kui Castbar debug: %s spell=%s uninterruptible=%s",
-			tostring(name),
-			tostring(spell),
-			tostring(uninterruptible)
-		)
-	)
-end
 local function ResetFade(f)
 	if not f or not f.castbar then
 		return
@@ -73,8 +49,6 @@ local function OnDefaultCastbarShow(self)
 	-- is cast uninterruptible?
 	local shieldShown = f.shield and f.shield:IsShown() or false
 	local uninterruptible = shieldShown or (f.castbar and f.castbar.notInterruptible)
-	DebugShieldState(f, uninterruptible)
-
 	if uninterruptible then
 		f.castbar.bar:SetStatusBarColor(unpack(mod.db.profile.display.shieldbarcolour))
 		f.castbar.shield:Show()
@@ -154,8 +128,6 @@ local function OnDefaultCastbarUpdate(self, elapsed)
 
 	local shieldShown = f.shield and f.shield:IsShown() or false
 	local uninterruptible = shieldShown or (f.castbar and f.castbar.notInterruptible)
-	DebugShieldState(f, uninterruptible)
-
 	if uninterruptible then
 		f.castbar.bar:SetStatusBarColor(unpack(mod.db.profile.display.shieldbarcolour))
 		f.castbar.shield:Show()

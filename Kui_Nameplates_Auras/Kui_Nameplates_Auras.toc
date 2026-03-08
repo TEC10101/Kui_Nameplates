@@ -1,12 +1,12 @@
 ## Interface: 30300
 ## Author: Kesava
-## Title: Kui |cff9966ffNameplates|r Auras
-## Notes: Aura display plugin for Kui Nameplates
-## Dependencies: Kui_Nameplates
+## Title: Kui |cff9966ffNameplates|r Auras - Ascension Modded
+## Notes: Aura display plugin for Kui Nameplates - Ascension Modded
+## Dependencies: Kui_Nameplates - Ascension Modded
 ## SavedVariables: KuiSpellListCustom
 ## X-Curse-Packaged-Version: 262
-## X-Curse-Project-Name: KuiNameplates
-## X-Curse-Project-ID: kuinameplates
+## X-Curse-Project-Name: KuiNameplates - Ascension Modded
+## X-Curse-Project-ID: kuinameplates - Ascension Modded
 ## X-Curse-Repository-ID: wow/kuinameplates/mainline
 
 Embeds.xml
